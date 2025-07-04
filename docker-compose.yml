@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # Redis service for BullMQ queue
+  redis:
+    image: redis:7-alpine
+    container_name: postmaster-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - postmaster-network
+
+  # Main application service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: postmaster-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./data/postmaster.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - API_KEY=dev-api-key-change-in-production
+      - LOG_LEVEL=info
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: npm run dev
+    networks:
+      - postmaster-network
+    restart: unless-stopped
+
+  # Worker service for processing jobs
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: postmaster-worker
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:./data/postmaster.db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - LOG_LEVEL=info
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_started
+    command: npm run worker
+    networks:
+      - postmaster-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2  # Run 2 worker instances for better throughput
+
+  # Redis Commander for Redis management (development only)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: postmaster-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - postmaster-network
+    profiles:
+      - dev-tools
+
+  # Prisma Studio for database management (development only)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: postmaster-prisma-studio
+    ports:
+      - "5555:5555"
+    environment:
+      - DATABASE_URL=file:./data/postmaster.db
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./data:/app/data
+    command: npx prisma studio --port 5555 --hostname 0.0.0.0
+    networks:
+      - postmaster-network
+    profiles:
+      - dev-tools
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  postmaster-network:
+    driver: bridge

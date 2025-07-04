@@ -1,0 +1,80 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model NotificationTarget {
+  id                  Int      @id @default(autoincrement())
+  name                String   @unique
+  platform            String
+  webhookUrl          String   @map("webhook_url")
+  config              String   @default("{}") // JSON string for platform-specific config
+  active              Boolean  @default(true)
+  rateLimitPerMinute  Int      @default(60) @map("rate_limit_per_minute")
+  lastUsedAt          DateTime? @map("last_used_at")
+  failureCount        Int      @default(0) @map("failure_count")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+  
+  logs NotificationLog[]
+  
+  @@index([platform, active])
+  @@map("notification_targets")
+}
+
+model NotificationLog {
+  id           Int      @id @default(autoincrement())
+  jobId        String   @map("job_id")
+  targetId     Int?     @map("target_id")
+  messageHash  String?  @map("message_hash")
+  status       String   // 'pending', 'sent', 'failed', 'retry', 'rate_limited', 'permanent_failure'
+  errorType    String?  @map("error_type") // 'rate_limited', 'invalid_webhook', 'platform_down', etc.
+  attemptCount Int      @default(0) @map("attempt_count")
+  errorMessage String?  @map("error_message")
+  payload      String   // JSON string
+  responseTime Int?     @map("response_time") // milliseconds
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  target NotificationTarget? @relation(fields: [targetId], references: [id])
+  
+  @@index([jobId])
+  @@index([status])
+  @@index([errorType])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
+
+model MessageDeduplication {
+  id          Int      @id @default(autoincrement())
+  dedupKey    String   @unique @map("dedup_key")
+  messageHash String   @map("message_hash")
+  jobId       String   @map("job_id")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([dedupKey])
+  @@index([expiresAt])
+  @@map("message_deduplication")
+}
+
+model MessageTemplate {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  platform    String
+  template    String   // JSON template structure
+  variables   String   @default("[]") // JSON array of required variables
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  @@index([platform, active])
+  @@map("message_templates")
+}
+
+// Note: API key management removed for MVP - using single shared key from environment 
