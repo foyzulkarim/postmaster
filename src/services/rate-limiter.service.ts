@@ -38,6 +38,11 @@ export class RateLimiterService {
       duration: 60, // per minute
       execEvenly: true,
     },
+    twitter: {
+      points: 15, // 15 tweets per 15 minutes (Twitter's rate limit)
+      duration: 900, // per 15 minutes
+      execEvenly: true,
+    },
     // API rate limits
     api: {
       points: 100, // 100 requests

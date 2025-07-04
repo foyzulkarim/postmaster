@@ -2,6 +2,7 @@ import { BroadcastMessage } from '../api/v1/broadcast/broadcast.schema';
 import { SlackFormatter } from '../formatters/slack.formatter';
 import { DiscordFormatter } from '../formatters/discord.formatter';
 import { TelegramFormatter } from '../formatters/telegram.formatter';
+import { TwitterFormatter } from '../formatters/twitter.formatter';
 import { databaseService } from './db.service';
 import { workerLogger } from '../utils/logger';
 
@@ -123,6 +124,7 @@ export class MessageFormatterService {
     this.formatters.set('slack', new SlackFormatter());
     this.formatters.set('discord', new DiscordFormatter());
     this.formatters.set('telegram', new TelegramFormatter());
+    this.formatters.set('twitter', new TwitterFormatter());
     
     workerLogger.debug('Message formatters initialized', {
       platforms: Array.from(this.formatters.keys()),
@@ -180,6 +182,7 @@ export class MessageFormatterService {
       slack: 4000,
       discord: 2000,
       telegram: 4096,
+      twitter: 280,
     };
 
     const limit = limits[platform as keyof typeof limits] || 1000;
@@ -194,6 +197,7 @@ export class MessageFormatterService {
       slack: 4000,
       discord: 2000,
       telegram: 4096,
+      twitter: 280,
     };
 
     const limit = limits[platform as keyof typeof limits] || 1000;

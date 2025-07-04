@@ -3,6 +3,7 @@ import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { databaseService } from '../../../services/db.service';
 import { RateLimiterService } from '../../../services/rate-limiter.service';
+import { platformConfigManager } from '../../../config/platforms.config';
 import { apiLogger } from '../../../utils/logger';
 import { config } from '../../../config';
 
@@ -18,6 +19,7 @@ export interface HealthResponse {
     queue: ServiceHealth;
     rateLimiter: ServiceHealth;
     platforms: ServiceHealth;
+    configuration: ServiceHealth;
   };
   metrics: SystemMetrics;
 }
@@ -94,6 +96,7 @@ export class HealthController {
         queueHealth,
         rateLimiterHealth,
         platformsHealth,
+        configurationHealth,
         metrics,
       ] = await Promise.allSettled([
         this.checkDatabase(),
@@ -101,6 +104,7 @@ export class HealthController {
         this.checkQueue(),
         this.checkRateLimiter(),
         this.checkPlatforms(),
+        this.checkConfiguration(),
         this.getMetrics(),
       ]);
 
@@ -111,6 +115,7 @@ export class HealthController {
         queue: this.processHealthResult(queueHealth),
         rateLimiter: this.processHealthResult(rateLimiterHealth),
         platforms: this.processHealthResult(platformsHealth),
+        configuration: this.processHealthResult(configurationHealth),
       };
 
       const systemMetrics = this.processMetricsResult(metrics);
@@ -315,8 +320,50 @@ export class HealthController {
   }
 
   /**
-   * Check platform adapters health
+   * Check platform configuration health
    */
+  private async checkConfiguration(): Promise<ServiceHealth> {
+    const startTime = Date.now();
+    
+    try {
+      // Check if configuration file exists and is valid
+      const hasConfiguredPlatforms = platformConfigManager.hasConfiguredPlatforms();
+      
+      if (!hasConfiguredPlatforms) {
+        return {
+          healthy: false,
+          responseTime: Date.now() - startTime,
+          error: 'No platforms configured',
+          details: {
+            configSummary: platformConfigManager.getConfigSummary(),
+          },
+        };
+      }
+
+      const configSummary = platformConfigManager.getConfigSummary();
+      const activePlatforms = platformConfigManager.getActivePlatforms();
+      
+      return {
+        healthy: true,
+        responseTime: Date.now() - startTime,
+        details: {
+          activePlatforms,
+          totalActivePlatforms: activePlatforms.length,
+          configSummary,
+        },
+      };
+
+    } catch (error) {
+      return {
+        healthy: false,
+        responseTime: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Configuration check failed',
+        details: {
+          configPath: platformConfigManager['configPath'],
+        },
+      };
+    }
+  }
   private async checkPlatforms(): Promise<ServiceHealth> {
     const startTime = Date.now();
     

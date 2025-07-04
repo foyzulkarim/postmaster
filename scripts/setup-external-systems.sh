@@ -81,6 +81,21 @@ prompt_input "Enter your Telegram chat ID" TELEGRAM_CHAT_ID "-1001234567890"
 prompt_input "Telegram rate limit (messages per minute)" TELEGRAM_RATE_LIMIT "30"
 echo ""
 
+# Twitter Configuration
+echo -e "${YELLOW}🐦 Twitter Configuration${NC}"
+echo "1. Go to https://developer.twitter.com/en/portal/dashboard"
+echo "2. Create a new project and app"
+echo "3. Generate API keys and access tokens"
+echo "4. Copy all credentials"
+echo ""
+prompt_input "Enter your Twitter API Key" TWITTER_API_KEY "your-twitter-api-key"
+prompt_input "Enter your Twitter API Secret" TWITTER_API_SECRET "your-twitter-api-secret"
+prompt_input "Enter your Twitter Access Token" TWITTER_ACCESS_TOKEN "your-twitter-access-token"
+prompt_input "Enter your Twitter Access Secret" TWITTER_ACCESS_SECRET "your-twitter-access-secret"
+prompt_input "Enter your Twitter Bearer Token (optional)" TWITTER_BEARER_TOKEN "your-twitter-bearer-token"
+prompt_input "Twitter rate limit (tweets per 15 minutes)" TWITTER_RATE_LIMIT "15"
+echo ""
+
 # Redis Configuration
 echo -e "${YELLOW}🗄️ Redis Configuration${NC}"
 prompt_input "Redis host" REDIS_HOST "localhost"
@@ -128,10 +143,18 @@ DISCORD_WEBHOOK_URL=$DISCORD_WEBHOOK_URL
 TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
 TELEGRAM_CHAT_ID=$TELEGRAM_CHAT_ID
 
+# Twitter API Credentials
+TWITTER_API_KEY=$TWITTER_API_KEY
+TWITTER_API_SECRET=$TWITTER_API_SECRET
+TWITTER_ACCESS_TOKEN=$TWITTER_ACCESS_TOKEN
+TWITTER_ACCESS_SECRET=$TWITTER_ACCESS_SECRET
+TWITTER_BEARER_TOKEN=$TWITTER_BEARER_TOKEN
+
 # Rate Limiting Configuration
 SLACK_RATE_LIMIT=$SLACK_RATE_LIMIT
 DISCORD_RATE_LIMIT=$DISCORD_RATE_LIMIT
 TELEGRAM_RATE_LIMIT=$TELEGRAM_RATE_LIMIT
+TWITTER_RATE_LIMIT=$TWITTER_RATE_LIMIT
 
 # Queue Configuration
 QUEUE_DEFAULT_RETRIES=3

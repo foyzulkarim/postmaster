@@ -165,7 +165,7 @@ describe('Broadcast API Integration', () => {
       expect(body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it('should handle multiple platforms', async () => {
+    it('should handle multiple platforms including Twitter', async () => {
       const multiPlatformRequest: BroadcastRequest = {
         message: {
           content: 'Multi-platform test message',
@@ -182,6 +182,10 @@ describe('Broadcast API Integration', () => {
           {
             platform: 'telegram',
             channels: ['-1001234567890'],
+          },
+          {
+            platform: 'twitter',
+            channels: ['main'],
           },
         ],
       };
@@ -200,7 +204,7 @@ describe('Broadcast API Integration', () => {
       
       const body = JSON.parse(response.body);
       expect(body.success).toBe(true);
-      expect(body.targets_count).toBe(3);
+      expect(body.targets_count).toBe(4);
     });
 
     it('should handle scheduled messages', async () => {

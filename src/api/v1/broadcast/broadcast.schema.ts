@@ -10,7 +10,7 @@ const messageSchema = Joi.object({
 
 // Target validation schema
 const targetSchema = Joi.object({
-  platform: Joi.string().valid('slack', 'discord', 'telegram').required(),
+  platform: Joi.string().valid('slack', 'discord', 'telegram', 'twitter').required(),
   channels: Joi.array().items(Joi.string().required()).min(1).required(),
   format_override: Joi.string().valid('plain', 'markdown', 'rich').optional(),
   template: Joi.string().optional(),
@@ -73,7 +73,7 @@ export interface BroadcastMessage {
 }
 
 export interface BroadcastTarget {
-  platform: 'slack' | 'discord' | 'telegram';
+  platform: 'slack' | 'discord' | 'telegram' | 'twitter';
   channels: string[];
   format_override?: 'plain' | 'markdown' | 'rich';
   template?: string;

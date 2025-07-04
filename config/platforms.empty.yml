@@ -1,0 +1,7 @@
+# Empty configuration for testing error handling
+platforms: {}
+
+defaults:
+  retry_config:
+    max_attempts: 3
+    backoff_multiplier: 2

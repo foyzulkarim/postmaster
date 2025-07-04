@@ -126,7 +126,45 @@ curl -X POST http://localhost:3000/api/v1/broadcast \
   }'
 ```
 
-## 🔐 Security Configuration
+### 4. Twitter Integration
+
+#### Step 1: Create Twitter App
+1. Go to [https://developer.twitter.com/en/portal/dashboard](https://developer.twitter.com/en/portal/dashboard)
+2. Create a new project and app
+3. Generate API keys and tokens:
+   - API Key (Consumer Key)
+   - API Secret Key (Consumer Secret)
+   - Access Token
+   - Access Token Secret
+   - Bearer Token (optional, for read-only operations)
+
+#### Step 2: Configure Postmaster
+```bash
+# Update your .env.production file
+TWITTER_API_KEY=your-api-key
+TWITTER_API_SECRET=your-api-secret
+TWITTER_ACCESS_TOKEN=your-access-token
+TWITTER_ACCESS_SECRET=your-access-secret
+TWITTER_BEARER_TOKEN=your-bearer-token
+```
+
+#### Step 3: Test Twitter Integration
+```bash
+curl -X POST http://localhost:3000/api/v1/broadcast \
+  -H "Authorization: Bearer your-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": {
+      "content": "Test tweet from Postmaster! 🚀 #automation"
+    },
+    "targets": [
+      {
+        "platform": "twitter",
+        "channels": ["main"]
+      }
+    ]
+  }'
+```
 
 ### 1. Generate Secure API Key
 ```bash

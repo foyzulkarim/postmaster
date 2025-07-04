@@ -22,6 +22,9 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "ts-node prisma/seed.ts",
+    "db:seed-templates": "ts-node scripts/seed-templates.ts",
+    "config:validate": "ts-node scripts/validate-config.ts",
+    "config:example": "cp config/platforms.example.yml config/platforms.yml",
     "db:studio": "prisma studio"
   },
   "prisma": {
@@ -50,6 +53,7 @@
   "devDependencies": {
     "@types/ioredis": "^4.28.10",
     "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.10",
     "@types/supertest": "^6.0.3",
     "jest": "^30.0.4",
@@ -65,13 +69,16 @@
     "@fastify/rate-limit": "^10.3.0",
     "@prisma/client": "^6.11.1",
     "bullmq": "^5.56.1",
+    "dotenv": "^17.0.1",
     "fastify": "^5.4.0",
     "ioredis": "^5.6.1",
     "joi": "^17.13.3",
+    "js-yaml": "^4.1.0",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
     "prisma": "^6.11.1",
     "rate-limiter-flexible": "^7.1.1",
-    "redis": "^5.5.6"
+    "redis": "^5.5.6",
+    "twitter-api-v2": "^1.24.0"
   }
 }

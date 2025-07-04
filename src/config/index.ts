@@ -28,6 +28,10 @@ export const config = {
       defaultRateLimit: 30,
       maxMessageSize: 4096,
     },
+    twitter: {
+      defaultRateLimit: 15, // per 15 minutes
+      maxMessageSize: 280,
+    },
   },
   queue: {
     defaultRetries: 3,

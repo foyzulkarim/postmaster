@@ -1,0 +1,105 @@
+# Postmaster Platform Configuration
+# This file defines all notification targets for different platforms
+
+platforms:
+  # Slack Configuration
+  slack:
+    - name: general
+      webhook_url: ${SLACK_GENERAL_WEBHOOK}
+      rate_limit: 60
+      active: true
+      config:
+        channel: "#general"
+        username: "Postmaster"
+        icon_emoji: ":postbox:"
+    
+    - name: alerts
+      webhook_url: ${SLACK_ALERTS_WEBHOOK}
+      rate_limit: 30  # Lower rate limit for alerts channel
+      active: true
+      config:
+        channel: "#alerts"
+        username: "Alert Bot"
+        icon_emoji: ":warning:"
+    
+    - name: dev-team
+      webhook_url: ${SLACK_DEV_WEBHOOK}
+      rate_limit: 60
+      active: true
+      config:
+        channel: "#dev-team"
+        username: "Dev Notifications"
+        icon_emoji: ":computer:"
+
+  # Discord Configuration
+  discord:
+    - name: main
+      webhook_url: ${DISCORD_MAIN_WEBHOOK}
+      rate_limit: 30
+      active: true
+      config:
+        username: "Postmaster"
+        avatar_url: "https://example.com/postmaster-avatar.png"
+    
+    - name: announcements
+      webhook_url: ${DISCORD_ANNOUNCEMENTS_WEBHOOK}
+      rate_limit: 15  # Lower rate for announcements
+      active: true
+      config:
+        username: "Announcements"
+        avatar_url: "https://example.com/announcements-avatar.png"
+
+  # Telegram Configuration
+  telegram:
+    - name: main-group
+      bot_token: ${TELEGRAM_BOT_TOKEN}
+      chat_id: ${TELEGRAM_MAIN_CHAT_ID}
+      rate_limit: 30
+      active: true
+      config:
+        parse_mode: "Markdown"
+        disable_web_page_preview: true
+    
+    - name: alerts-channel
+      bot_token: ${TELEGRAM_BOT_TOKEN}
+      chat_id: ${TELEGRAM_ALERTS_CHAT_ID}
+      rate_limit: 20
+      active: true
+      config:
+        parse_mode: "HTML"
+        disable_notification: false
+
+  # Twitter Configuration
+  twitter:
+    - name: main-account
+      api_key: ${TWITTER_API_KEY}
+      api_secret: ${TWITTER_API_SECRET}
+      access_token: ${TWITTER_ACCESS_TOKEN}
+      access_secret: ${TWITTER_ACCESS_SECRET}
+      bearer_token: ${TWITTER_BEARER_TOKEN}
+      rate_limit: 15  # 15 tweets per 15 minutes
+      active: true
+      config:
+        account: "main"
+    
+    - name: support-account
+      api_key: ${TWITTER_SUPPORT_API_KEY}
+      api_secret: ${TWITTER_SUPPORT_API_SECRET}
+      access_token: ${TWITTER_SUPPORT_ACCESS_TOKEN}
+      access_secret: ${TWITTER_SUPPORT_ACCESS_SECRET}
+      rate_limit: 10
+      active: false  # Disabled by default
+      config:
+        account: "support"
+
+# Default configuration values
+defaults:
+  rate_limits:
+    slack: 60
+    discord: 30
+    telegram: 30
+    twitter: 15
+  
+  retry_config:
+    max_attempts: 3
+    backoff_multiplier: 2

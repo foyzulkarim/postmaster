@@ -3,10 +3,27 @@ import { BasePlatformAdapter } from '../adapters/base.adapter';
 import { SlackAdapter } from '../adapters/slack.adapter';
 import { DiscordAdapter } from '../adapters/discord.adapter';
 import { TelegramAdapter } from '../adapters/telegram.adapter';
+import { TwitterAdapter } from '../adapters/twitter.adapter';
 import { MessageFormatterService, FormattedMessage } from './message-formatter.service';
 import { RateLimiterService } from './rate-limiter.service';
 import { databaseService } from './db.service';
+import { platformConfigManager, PlatformTargetConfig } from '../config/platforms.config';
 import { workerLogger } from '../utils/logger';
+import { NotificationTarget } from '@prisma/client';
+
+export class NoProvidersConfiguredError extends Error {
+  constructor(message: string = 'No notification providers are configured') {
+    super(message);
+    this.name = 'NoProvidersConfiguredError';
+  }
+}
+
+export class PlatformNotConfiguredError extends Error {
+  constructor(platform: string) {
+    super(`Platform "${platform}" is not configured`);
+    this.name = 'PlatformNotConfiguredError';
+  }
+}
 
 export interface DispatchResult {
   platform: string;
@@ -36,6 +53,13 @@ export class DispatcherService {
       targetsCount: payload.targets.length,
       platforms: payload.targets.map(t => t.platform),
     });
+
+    // Validate that all requested platforms are configured
+    for (const target of payload.targets) {
+      if (!this.adapters.has(target.platform)) {
+        throw new PlatformNotConfiguredError(target.platform);
+      }
+    }
 
     for (const target of payload.targets) {
       const result = await this.dispatchToTarget(payload, target);
@@ -164,70 +188,164 @@ export class DispatcherService {
   }
 
   /**
-   * Initialize platform adapters
+   * Initialize platform adapters from configuration file
    */
   private async initializeAdapters(): Promise<void> {
     try {
-      // Get active targets from database to configure adapters
-      const activeTargets = await databaseService.findAllActiveTargets();
-      
-      // Group targets by platform
-      const platformTargets = new Map<string, any[]>();
-      for (const target of activeTargets) {
-        if (!platformTargets.has(target.platform)) {
-          platformTargets.set(target.platform, []);
-        }
-        platformTargets.get(target.platform)!.push(target);
+      workerLogger.info('Initializing platform adapters from configuration file');
+
+      // Check if any platforms are configured
+      if (!platformConfigManager.hasConfiguredPlatforms()) {
+        const error = new NoProvidersConfiguredError(
+          'No notification providers are configured. Please check your platforms.yml configuration file.'
+        );
+        workerLogger.error('No providers configured', {
+          configSummary: platformConfigManager.getConfigSummary(),
+        });
+        throw error;
       }
 
-      // Initialize adapters for each platform
-      for (const [platform, targets] of platformTargets) {
+      const activePlatforms = platformConfigManager.getActivePlatforms();
+      workerLogger.info('Found active platforms in configuration', {
+        platforms: activePlatforms,
+        totalPlatforms: activePlatforms.length,
+      });
+
+      // Initialize adapters for each configured platform
+      for (const platform of activePlatforms) {
         try {
-          let adapter: BasePlatformAdapter;
-          
-          switch (platform) {
-            case 'slack':
-              adapter = new SlackAdapter(targets);
-              break;
-            case 'discord':
-              adapter = new DiscordAdapter(targets);
-              break;
-            case 'telegram':
-              adapter = new TelegramAdapter(targets);
-              break;
-            default:
-              workerLogger.warn('Unknown platform, skipping adapter initialization', {
-                platform,
-              });
-              continue;
+          const platformTargets = platformConfigManager.getPlatformConfig(platform);
+          const activeTargets = platformTargets.filter(target => target.active !== false);
+
+          if (activeTargets.length === 0) {
+            workerLogger.warn(`No active targets found for platform: ${platform}`);
+            continue;
           }
 
+          // Convert config targets to NotificationTarget format for adapters
+          const adapterTargets: NotificationTarget[] = activeTargets.map((target, index) => ({
+            id: index + 1,
+            name: target.name,
+            platform: platform,
+            webhookUrl: this.getWebhookUrl(platform, target),
+            config: JSON.stringify(target.config || {}),
+            active: true,
+            rateLimitPerMinute: target.rate_limit || this.getDefaultRateLimit(platform),
+            lastUsedAt: null,
+            failureCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+
+          // Initialize platform adapter
+          const adapter = this.createPlatformAdapter(platform, adapterTargets, activeTargets);
           this.adapters.set(platform, adapter);
-          
-          workerLogger.debug('Initialized adapter for platform', {
+
+          workerLogger.info(`Initialized ${platform} adapter`, {
             platform,
-            targetsCount: targets.length,
+            targetsCount: activeTargets.length,
+            targetNames: activeTargets.map(t => t.name),
           });
-          
+
         } catch (error) {
-          workerLogger.error('Failed to initialize adapter for platform', {
+          workerLogger.error(`Failed to initialize adapter for platform: ${platform}`, {
             platform,
             error: error instanceof Error ? error.message : 'Unknown error',
           });
+          
+          // Don't throw here - continue with other platforms
+          // But log the error for debugging
         }
       }
 
-      workerLogger.info('Platform adapters initialized', {
-        platforms: Array.from(this.adapters.keys()),
+      // Final check - ensure at least one adapter was initialized
+      if (this.adapters.size === 0) {
+        const error = new NoProvidersConfiguredError(
+          'Failed to initialize any notification providers. Check your configuration and credentials.'
+        );
+        workerLogger.error('No adapters initialized', {
+          configSummary: platformConfigManager.getConfigSummary(),
+        });
+        throw error;
+      }
+
+      workerLogger.info('Platform adapters initialization completed', {
+        initializedPlatforms: Array.from(this.adapters.keys()),
         totalAdapters: this.adapters.size,
+        configSummary: platformConfigManager.getConfigSummary(),
       });
 
     } catch (error) {
+      if (error instanceof NoProvidersConfiguredError) {
+        throw error; // Re-throw our custom errors
+      }
+      
       workerLogger.error('Failed to initialize adapters', {
         error: error instanceof Error ? error.message : 'Unknown error',
+        configSummary: platformConfigManager.getConfigSummary(),
       });
-      throw error;
+      throw new Error(`Adapter initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Create platform-specific adapter
+   */
+  private createPlatformAdapter(
+    platform: string, 
+    adapterTargets: NotificationTarget[], 
+    configTargets: PlatformTargetConfig[]
+  ): BasePlatformAdapter {
+    switch (platform) {
+      case 'slack':
+        return new SlackAdapter(adapterTargets);
+      
+      case 'discord':
+        return new DiscordAdapter(adapterTargets);
+      
+      case 'telegram':
+        return new TelegramAdapter(adapterTargets);
+      
+      case 'twitter':
+        // Twitter adapter needs special handling for credentials
+        return new TwitterAdapter(adapterTargets);
+      
+      default:
+        throw new Error(`Unsupported platform: ${platform}`);
+    }
+  }
+
+  /**
+   * Get webhook URL for platform target
+   */
+  private getWebhookUrl(platform: string, target: PlatformTargetConfig): string {
+    switch (platform) {
+      case 'slack':
+      case 'discord':
+        return target.webhook_url || '';
+      
+      case 'telegram':
+        return `https://api.telegram.org/bot${target.bot_token}/sendMessage`;
+      
+      case 'twitter':
+        return 'https://api.twitter.com/2/tweets';
+      
+      default:
+        return target.webhook_url || '';
+    }
+  }
+
+  /**
+   * Get default rate limit for platform
+   */
+  private getDefaultRateLimit(platform: string): number {
+    const defaults = {
+      slack: 60,
+      discord: 30,
+      telegram: 30,
+      twitter: 15,
+    };
+    return defaults[platform as keyof typeof defaults] || 30;
   }
 
   /**

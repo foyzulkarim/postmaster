@@ -1,0 +1,44 @@
+# Production Platform Configuration
+platforms:
+  slack:
+    - name: general
+      webhook_url: ${SLACK_WEBHOOK_URL}
+      rate_limit: 60
+      active: true
+      config:
+        channel: "#general"
+        username: "Postmaster"
+        icon_emoji: ":postbox:"
+
+  discord:
+    - name: main
+      webhook_url: ${DISCORD_WEBHOOK_URL}
+      rate_limit: 30
+      active: true
+      config:
+        username: "Postmaster"
+
+  telegram:
+    - name: main
+      bot_token: ${TELEGRAM_BOT_TOKEN}
+      chat_id: ${TELEGRAM_CHAT_ID}
+      rate_limit: 30
+      active: true
+      config:
+        parse_mode: "Markdown"
+
+  twitter:
+    - name: main
+      api_key: ${TWITTER_API_KEY}
+      api_secret: ${TWITTER_API_SECRET}
+      access_token: ${TWITTER_ACCESS_TOKEN}
+      access_secret: ${TWITTER_ACCESS_SECRET}
+      rate_limit: 15
+      active: true
+      config:
+        account: "main"
+
+defaults:
+  retry_config:
+    max_attempts: 3
+    backoff_multiplier: 2

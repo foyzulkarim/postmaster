@@ -6,102 +6,11 @@ config({ path: '.env.production' });
 
 const prisma = new PrismaClient();
 
-async function seedProduction() {
-  console.log('🌱 Seeding production database...');
+async function seedTemplates() {
+  console.log('🌱 Seeding message templates...');
 
   try {
-    // Create Slack targets
-    const slackGeneral = await prisma.notificationTarget.upsert({
-      where: { name: 'slack-general' },
-      update: {},
-      create: {
-        name: 'slack-general',
-        platform: 'slack',
-        webhookUrl: process.env.SLACK_WEBHOOK_URL || 'https://hooks.slack.com/services/REPLACE/WITH/ACTUAL',
-        config: JSON.stringify({
-          channel: '#general',
-          username: 'Postmaster',
-          icon_emoji: ':postbox:',
-        }),
-        active: true,
-        rateLimitPerMinute: parseInt(process.env.SLACK_RATE_LIMIT || '60'),
-      },
-    });
-
-    const slackAlerts = await prisma.notificationTarget.upsert({
-      where: { name: 'slack-alerts' },
-      update: {},
-      create: {
-        name: 'slack-alerts',
-        platform: 'slack',
-        webhookUrl: process.env.SLACK_WEBHOOK_URL || 'https://hooks.slack.com/services/REPLACE/WITH/ACTUAL',
-        config: JSON.stringify({
-          channel: '#alerts',
-          username: 'Postmaster',
-          icon_emoji: ':warning:',
-        }),
-        active: true,
-        rateLimitPerMinute: parseInt(process.env.SLACK_RATE_LIMIT || '60'),
-      },
-    });
-
-    // Create Discord targets
-    const discordGeneral = await prisma.notificationTarget.upsert({
-      where: { name: 'discord-general' },
-      update: {},
-      create: {
-        name: 'discord-general',
-        platform: 'discord',
-        webhookUrl: process.env.DISCORD_WEBHOOK_URL || 'https://discord.com/api/webhooks/REPLACE/WITH/ACTUAL',
-        config: JSON.stringify({
-          username: 'Postmaster',
-          avatar_url: 'https://example.com/postmaster-avatar.png',
-        }),
-        active: true,
-        rateLimitPerMinute: parseInt(process.env.DISCORD_RATE_LIMIT || '30'),
-      },
-    });
-
-    // Create Twitter targets
-    const twitterMain = await prisma.notificationTarget.upsert({
-      where: { name: 'twitter-main' },
-      update: {},
-      create: {
-        name: 'twitter-main',
-        platform: 'twitter',
-        webhookUrl: 'https://api.twitter.com/2/tweets', // Twitter API v2 endpoint
-        config: JSON.stringify({
-          account: 'main', // Main Twitter account
-          credentials: {
-            // Credentials will be loaded from environment variables
-            appKey: process.env.TWITTER_API_KEY,
-            appSecret: process.env.TWITTER_API_SECRET,
-            accessToken: process.env.TWITTER_ACCESS_TOKEN,
-            accessSecret: process.env.TWITTER_ACCESS_SECRET,
-          },
-        }),
-        active: true,
-        rateLimitPerMinute: parseInt(process.env.TWITTER_RATE_LIMIT || '15'),
-      },
-    });
-    const telegramGroup = await prisma.notificationTarget.upsert({
-      where: { name: 'telegram-notifications' },
-      update: {},
-      create: {
-        name: 'telegram-notifications',
-        platform: 'telegram',
-        webhookUrl: `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-        config: JSON.stringify({
-          chat_id: process.env.TELEGRAM_CHAT_ID || '-1001234567890',
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true,
-        }),
-        active: true,
-        rateLimitPerMinute: parseInt(process.env.TELEGRAM_RATE_LIMIT || '30'),
-      },
-    });
-
-    // Create production message templates
+    // Create production alert templates for each platform
     const slackAlertTemplate = await prisma.messageTemplate.upsert({
       where: { name: 'production-alert-slack' },
       update: {},
@@ -219,11 +128,13 @@ async function seedProduction() {
         active: true,
       },
     });
-    const generalTemplate = await prisma.messageTemplate.upsert({
-      where: { name: 'general-notification' },
+
+    // Create general notification templates
+    const generalSlackTemplate = await prisma.messageTemplate.upsert({
+      where: { name: 'general-notification-slack' },
       update: {},
       create: {
-        name: 'general-notification',
+        name: 'general-notification-slack',
         platform: 'slack',
         template: JSON.stringify({
           text: '📢 {{title}}',
@@ -251,33 +162,74 @@ async function seedProduction() {
       },
     });
 
-    console.log('✅ Production database seeded successfully!');
-    console.log('📊 Created records:');
-    console.log(`  - Notification Targets: 5`);
-    console.log(`    - Slack: ${slackGeneral.name}, ${slackAlerts.name}`);
-    console.log(`    - Discord: ${discordGeneral.name}`);
-    console.log(`    - Telegram: ${telegramGroup.name}`);
-    console.log(`    - Twitter: ${twitterMain.name}`);
-    console.log(`  - Message Templates: 5`);
-    console.log(`    - Alert Templates: 4 (one per platform)`);
-    console.log(`    - General Template: 1`);
+    const generalDiscordTemplate = await prisma.messageTemplate.upsert({
+      where: { name: 'general-notification-discord' },
+      update: {},
+      create: {
+        name: 'general-notification-discord',
+        platform: 'discord',
+        template: JSON.stringify({
+          content: '📢 **{{title}}**',
+          embeds: [
+            {
+              description: '{{content}}',
+              color: 3447003, // Blue color
+              footer: {
+                text: 'From {{source_app}}',
+              },
+              timestamp: '{{timestamp}}',
+            },
+          ],
+        }),
+        variables: JSON.stringify(['title', 'content', 'source_app', 'timestamp']),
+        active: true,
+      },
+    });
 
-    console.log('\n⚠️  Important: Update the following in your .env.production:');
-    console.log('  - SLACK_WEBHOOK_URL with your actual Slack webhook');
-    console.log('  - DISCORD_WEBHOOK_URL with your actual Discord webhook');
-    console.log('  - TELEGRAM_BOT_TOKEN with your actual Telegram bot token');
-    console.log('  - TELEGRAM_CHAT_ID with your actual Telegram chat ID');
-    console.log('  - TWITTER_API_KEY with your Twitter API key');
-    console.log('  - TWITTER_API_SECRET with your Twitter API secret');
-    console.log('  - TWITTER_ACCESS_TOKEN with your Twitter access token');
-    console.log('  - TWITTER_ACCESS_SECRET with your Twitter access secret');
+    const generalTelegramTemplate = await prisma.messageTemplate.upsert({
+      where: { name: 'general-notification-telegram' },
+      update: {},
+      create: {
+        name: 'general-notification-telegram',
+        platform: 'telegram',
+        template: JSON.stringify({
+          text: '📢 *{{title}}*\n\n{{content}}\n\n_From: {{source_app}}_',
+          parse_mode: 'Markdown',
+        }),
+        variables: JSON.stringify(['title', 'content', 'source_app']),
+        active: true,
+      },
+    });
+
+    const generalTwitterTemplate = await prisma.messageTemplate.upsert({
+      where: { name: 'general-notification-twitter' },
+      update: {},
+      create: {
+        name: 'general-notification-twitter',
+        platform: 'twitter',
+        template: JSON.stringify({
+          text: '📢 {{title}}\n\n{{content}}\n\n#{{source_app}}',
+        }),
+        variables: JSON.stringify(['title', 'content', 'source_app']),
+        active: true,
+      },
+    });
+
+    console.log('✅ Message templates seeded successfully!');
+    console.log('📊 Created templates:');
+    console.log('  - Alert Templates: 4 (one per platform)');
+    console.log('  - General Templates: 4 (one per platform)');
+    console.log('  - Total: 8 templates');
+
+    console.log('\n💡 Note: NotificationTargets are now configured via environment variables');
+    console.log('   No database seeding required for platform configuration!');
 
   } catch (error) {
-    console.error('❌ Error seeding production database:', error);
+    console.error('❌ Error seeding templates:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-seedProduction();
+seedTemplates();
