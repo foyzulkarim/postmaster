@@ -3,7 +3,6 @@ import { BasePlatformAdapter } from '../adapters/base.adapter';
 import { SlackAdapter } from '../adapters/slack.adapter';
 import { DiscordAdapter } from '../adapters/discord.adapter';
 import { TelegramAdapter } from '../adapters/telegram.adapter';
-import { TwitterAdapter } from '../adapters/twitter.adapter';
 import { MessageFormatterService, FormattedMessage } from './message-formatter.service';
 import { RateLimiterService } from './rate-limiter.service';
 import { databaseService } from './db.service';
@@ -129,7 +128,7 @@ export class DispatcherService {
       }
 
       // Format message for the platform
-      const formattedMessage = this.formatMessage(payload, target);
+      const formattedMessage = await this.formatMessage(payload, target);
 
       // Send message through adapter
       await adapter.send(formattedMessage, target.channels);
@@ -176,10 +175,10 @@ export class DispatcherService {
   /**
    * Format message for specific platform and target
    */
-  private formatMessage(payload: BroadcastRequest, target: BroadcastTarget): FormattedMessage {
+  private async formatMessage(payload: BroadcastRequest, target: BroadcastTarget): Promise<FormattedMessage> {
     const format = target.format_override || payload.message.format || 'plain';
     
-    return this.formatter.formatForPlatform(
+    return await this.formatter.formatForPlatform(
       payload.message,
       target.platform,
       format,
@@ -305,10 +304,6 @@ export class DispatcherService {
       
       case 'telegram':
         return new TelegramAdapter(adapterTargets);
-      
-      case 'twitter':
-        // Twitter adapter needs special handling for credentials
-        return new TwitterAdapter(adapterTargets);
       
       default:
         throw new Error(`Unsupported platform: ${platform}`);

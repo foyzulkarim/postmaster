@@ -2,7 +2,7 @@ import { NotificationTarget } from '@prisma/client';
 import { FormattedMessage } from '../services/message-formatter.service';
 import { RateLimiterService } from '../services/rate-limiter.service';
 import { adapterLogger } from '../utils/logger';
-import { ErrorType, PlatformError, RateLimitError } from '../jobs/notification.worker';
+import { ErrorType, PlatformError, RateLimitError } from '../types/errors.types';
 
 export abstract class BasePlatformAdapter {
   protected targets: NotificationTarget[];

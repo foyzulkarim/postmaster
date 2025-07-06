@@ -70,6 +70,8 @@ export interface BroadcastMessage {
   content: string;
   format?: 'plain' | 'markdown' | 'rich';
   max_length?: number;
+  priority?: 'low' | 'normal' | 'high' | 'critical';
+  tags?: string[];
 }
 
 export interface BroadcastTarget {

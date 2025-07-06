@@ -42,5 +42,6 @@ export const workerLogger = createChildLogger('worker');
 export const dbLogger = createChildLogger('database');
 export const queueLogger = createChildLogger('queue');
 export const adapterLogger = createChildLogger('adapter');
+export const serviceLogger = createChildLogger('service');
 
 export default logger; 

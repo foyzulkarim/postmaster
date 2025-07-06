@@ -1,12 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import { JobsController } from './jobs.controller';
 import { jobsSchema } from './jobs.schema';
+import { AuthMiddleware } from '../../../middleware/auth.middleware';
 
 export async function jobsRoutes(fastify: FastifyInstance) {
   const jobsController = new JobsController();
 
   // Register authentication middleware for all job routes
-  fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', AuthMiddleware.preHandler);
 
   // GET /api/v1/jobs - List jobs with filtering and pagination
   fastify.get('/', {

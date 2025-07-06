@@ -10,8 +10,7 @@ const redis = new Redis({
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
-  maxRetriesPerRequest: 3,
-  retryDelayOnFailover: 100,
+  maxRetriesPerRequest: null, // Required for BullMQ
   lazyConnect: true,
 });
 
@@ -238,14 +237,14 @@ export class NotificationProducer {
    * Setup event listeners for queue monitoring
    */
   private setupEventListeners(): void {
-    this.queue.on('completed', (job) => {
+    (this.queue as any).on('completed', (job: any) => {
       queueLogger.info('Job completed', {
         jobId: job.id,
         duration: job.finishedOn ? job.finishedOn - job.processedOn! : 0,
       });
     });
 
-    this.queue.on('failed', (job, err) => {
+    (this.queue as any).on('failed', (job: any, err: any) => {
       queueLogger.error('Job failed', {
         jobId: job?.id,
         error: err.message,
@@ -253,7 +252,7 @@ export class NotificationProducer {
       });
     });
 
-    this.queue.on('stalled', (jobId) => {
+    (this.queue as any).on('stalled', (jobId: any) => {
       queueLogger.warn('Job stalled', { jobId });
     });
 

@@ -411,7 +411,7 @@ export class JobsController {
     return {
       id: job.id!,
       status: jobState,
-      progress: job.progress,
+      progress: typeof job.progress === 'number' ? job.progress : undefined,
       data: job.data,
       attempts: job.attemptsMade,
       maxAttempts: job.opts.attempts || 3,
@@ -445,7 +445,7 @@ export class JobsController {
   private async buildJobSummary(job: Job): Promise<JobSummary> {
     const jobState = await job.getState();
     const targets = job.data?.targets || [];
-    const platforms = [...new Set(targets.map((t: any) => t.platform))];
+    const platforms = [...new Set(targets.map((t: any) => t.platform))].filter(Boolean) as string[];
 
     return {
       id: job.id!,

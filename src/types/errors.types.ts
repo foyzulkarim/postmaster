@@ -377,13 +377,11 @@ export class ErrorFactory {
       );
     }
     
-    return new PostmasterError(
+    return new NetworkError(
       error.message || 'Unknown error',
-      ErrorType.UNKNOWN_ERROR,
       false,
-      500,
       { ...context, originalError: error.message }
-    ) as any; // Cast needed due to abstract class
+    );
   }
 }
 
@@ -464,17 +462,3 @@ export class ErrorUtils {
     };
   }
 }
-
-// Re-export for backward compatibility
-export {
-  PlatformError,
-  RateLimitError,
-  ValidationError,
-  AuthenticationError,
-  AuthorizationError,
-  DatabaseError,
-  QueueError,
-  TemplateError,
-  NetworkError,
-  ConfigurationError,
-};

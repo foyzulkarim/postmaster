@@ -60,8 +60,7 @@ export class RateLimiterService {
       host: config.redis.host,
       port: config.redis.port,
       password: config.redis.password,
-      retryDelayOnFailover: 100,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null, // Required for BullMQ
       lazyConnect: true,
     });
 
@@ -93,7 +92,7 @@ export class RateLimiterService {
         allowed: true,
         remainingPoints: result.remainingPoints || 0,
         msBeforeNext: result.msBeforeNext || 0,
-        totalHits: result.totalHits || 0,
+        totalHits: (result as any).totalHits || 0,
       };
 
       serviceLogger.debug('Rate limit check passed', {

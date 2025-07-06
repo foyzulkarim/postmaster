@@ -30,9 +30,6 @@ export class DatabaseService {
         { level: 'warn', emit: 'event' },
       ],
     });
-
-    // Setup Prisma event listeners for logging
-    this.setupEventListeners();
   }
 
   /**
@@ -383,6 +380,310 @@ export class DatabaseService {
   }
 
   /**
+   * Health check method (alias for getHealthStatus for compatibility)
+   */
+  async healthCheck(): Promise<void> {
+    const result = await this.getHealthStatus();
+    if (!result.healthy) {
+      throw new Error(result.error || 'Database health check failed');
+    }
+  }
+
+  /**
+   * Count total targets
+   */
+  async countTargets(): Promise<number> {
+    const startTime = Date.now();
+    
+    try {
+      const count = await this.prisma.notificationTarget.count();
+      
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Counted targets', {
+        count,
+        responseTime,
+      });
+      
+      return count;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error counting targets', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Count active targets
+   */
+  async countActiveTargets(): Promise<number> {
+    const startTime = Date.now();
+    
+    try {
+      const count = await this.prisma.notificationTarget.count({
+        where: { active: true },
+      });
+      
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Counted active targets', {
+        count,
+        responseTime,
+      });
+      
+      return count;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error counting active targets', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Count total logs
+   */
+  async countLogs(): Promise<number> {
+    const startTime = Date.now();
+    
+    try {
+      const count = await this.prisma.notificationLog.count();
+      
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Counted logs', {
+        count,
+        responseTime,
+      });
+      
+      return count;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error counting logs', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Count recent jobs within specified hours
+   */
+  async countRecentJobs(hours: number = 24): Promise<number> {
+    const startTime = Date.now();
+    
+    try {
+      const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+      
+      // Get distinct job IDs for recent jobs
+      const distinctJobs = await this.prisma.notificationLog.findMany({
+        where: {
+          createdAt: {
+            gte: since,
+          },
+        },
+        select: {
+          jobId: true,
+        },
+        distinct: ['jobId'],
+      });
+
+      const count = distinctJobs.length;
+      
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Counted recent jobs', {
+        hours,
+        count,
+        responseTime,
+      });
+      
+      return count;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error counting recent jobs', {
+        hours,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get job logs (alias for findLogsByJobId for compatibility)
+   */
+  async getJobLogs(jobId: string): Promise<NotificationLog[]> {
+    return this.findLogsByJobId(jobId);
+  }
+
+  /**
+   * Find templates by platform
+   */
+  async findTemplatesByPlatform(platform?: string): Promise<MessageTemplate[]> {
+    const startTime = Date.now();
+    
+    try {
+      const whereClause = platform ? { platform, active: true } : { active: true };
+      
+      const templates = await this.prisma.messageTemplate.findMany({
+        where: whereClause,
+        orderBy: [
+          { platform: 'asc' },
+          { name: 'asc' },
+        ],
+      });
+
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Found templates by platform', {
+        platform: platform || 'all',
+        count: templates.length,
+        responseTime,
+      });
+
+      return templates;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error finding templates by platform', {
+        platform: platform || 'all',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new template
+   */
+  async createTemplate(templateData: {
+    name: string;
+    platform: string;
+    template: string;
+    variables: string;
+    active: boolean;
+  }): Promise<MessageTemplate> {
+    const startTime = Date.now();
+    
+    try {
+      const template = await this.prisma.messageTemplate.create({
+        data: templateData,
+      });
+
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Created template', {
+        templateId: template.id,
+        name: template.name,
+        platform: template.platform,
+        responseTime,
+      });
+
+      return template;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error creating template', {
+        name: templateData.name,
+        platform: templateData.platform,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing template
+   */
+  async updateTemplate(
+    name: string,
+    platform: string,
+    updateData: Partial<{
+      template: string;
+      variables: string;
+      active: boolean;
+    }>
+  ): Promise<MessageTemplate> {
+    const startTime = Date.now();
+    
+    try {
+      const template = await this.prisma.messageTemplate.updateMany({
+        where: { name, platform },
+        data: {
+          ...updateData,
+          updatedAt: new Date(),
+        },
+      });
+
+      if (template.count === 0) {
+        throw new Error(`Template not found: ${name} for platform ${platform}`);
+      }
+
+      // Fetch the updated template
+      const updatedTemplate = await this.prisma.messageTemplate.findFirst({
+        where: { name, platform },
+      });
+
+      if (!updatedTemplate) {
+        throw new Error(`Template not found after update: ${name} for platform ${platform}`);
+      }
+
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Updated template', {
+        templateId: updatedTemplate.id,
+        name,
+        platform,
+        responseTime,
+      });
+
+      return updatedTemplate;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error updating template', {
+        name,
+        platform,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a template
+   */
+  async deleteTemplate(name: string, platform: string): Promise<void> {
+    const startTime = Date.now();
+    
+    try {
+      const result = await this.prisma.messageTemplate.deleteMany({
+        where: { name, platform },
+      });
+
+      if (result.count === 0) {
+        throw new Error(`Template not found: ${name} for platform ${platform}`);
+      }
+
+      const responseTime = Date.now() - startTime;
+      dbLogger.debug('Deleted template', {
+        name,
+        platform,
+        responseTime,
+      });
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      dbLogger.error('Error deleting template', {
+        name,
+        platform,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        responseTime,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Close database connection
    */
   async disconnect(): Promise<void> {
@@ -394,42 +695,6 @@ export class DatabaseService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  }
-
-  /**
-   * Setup Prisma event listeners for logging
-   */
-  private setupEventListeners(): void {
-    this.prisma.$on('query', (e) => {
-      dbLogger.debug('Database query', {
-        query: e.query,
-        params: e.params,
-        duration: e.duration,
-      });
-    });
-
-    this.prisma.$on('error', (e) => {
-      dbLogger.error('Database error', {
-        message: e.message,
-        target: e.target,
-      });
-    });
-
-    this.prisma.$on('info', (e) => {
-      dbLogger.info('Database info', {
-        message: e.message,
-        target: e.target,
-      });
-    });
-
-    this.prisma.$on('warn', (e) => {
-      dbLogger.warn('Database warning', {
-        message: e.message,
-        target: e.target,
-      });
-    });
-
-    dbLogger.info('Database event listeners setup complete');
   }
 }
 

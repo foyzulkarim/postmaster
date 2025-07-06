@@ -1,7 +1,7 @@
 import { NotificationTarget } from '@prisma/client';
 import { BasePlatformAdapter } from './base.adapter';
 import { FormattedMessage } from '../services/message-formatter.service';
-import { PlatformError, ErrorType } from '../jobs/notification.worker';
+import { PlatformError, ErrorType } from '../types/errors.types';
 
 export interface DiscordMessage {
   content?: string;
@@ -360,7 +360,7 @@ export class DiscordAdapter extends BasePlatformAdapter {
   /**
    * Validate Discord-specific message constraints
    */
-  protected validateMessage(message: FormattedMessage): void {
+  protected override validateMessage(message: FormattedMessage): void {
     super.validateMessage(message);
     
     // Discord-specific validations
@@ -378,7 +378,7 @@ export class DiscordAdapter extends BasePlatformAdapter {
   /**
    * Get Discord-specific adapter statistics
    */
-  getStats() {
+  override getStats() {
     const baseStats = super.getStats();
     
     return {

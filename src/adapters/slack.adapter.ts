@@ -1,7 +1,7 @@
 import { NotificationTarget } from '@prisma/client';
 import { BasePlatformAdapter } from './base.adapter';
 import { FormattedMessage } from '../services/message-formatter.service';
-import { PlatformError, ErrorType } from '../jobs/notification.worker';
+import { PlatformError, ErrorType } from '../types/errors.types';
 
 export interface SlackMessage {
   text?: string;
@@ -240,7 +240,7 @@ export class SlackAdapter extends BasePlatformAdapter {
   /**
    * Validate Slack-specific message constraints
    */
-  protected validateMessage(message: FormattedMessage): void {
+  protected override validateMessage(message: FormattedMessage): void {
     super.validateMessage(message);
     
     // Slack-specific validations
@@ -284,7 +284,7 @@ export class SlackAdapter extends BasePlatformAdapter {
   /**
    * Get Slack-specific adapter statistics
    */
-  getStats() {
+  override getStats() {
     const baseStats = super.getStats();
     
     return {

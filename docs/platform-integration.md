@@ -2,6 +2,139 @@
 
 This guide will help you configure external platforms (Slack, Discord, Telegram) to work with your Postmaster notification service.
 
+## 🚀 Quick Start - API Usage
+
+### Basic Broadcast Request
+```bash
+curl -X POST http://localhost:3000/api/v1/broadcast \
+  -H "Authorization: Bearer your-secret-api-key-change-in-production" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": {
+      "title": "System Alert",
+      "content": "Your notification message here",
+      "priority": "normal"
+    },
+    "targets": [
+      {
+        "platform": "slack",
+        "channels": ["#general"]
+      }
+    ]
+  }'
+```
+
+### Multi-Platform Broadcast
+```bash
+curl -X POST http://localhost:3000/api/v1/broadcast \
+  -H "Authorization: Bearer your-secret-api-key-change-in-production" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": {
+      "title": "🚀 New Course Published",
+      "content": "Advanced JavaScript course is now available for enrollment!",
+      "priority": "high",
+      "tags": ["course", "javascript", "announcement"]
+    },
+    "targets": [
+      {
+        "platform": "slack",
+        "channels": ["#general", "#announcements"]
+      },
+      {
+        "platform": "discord", 
+        "channels": ["general", "announcements"]
+      },
+      {
+        "platform": "telegram",
+        "channels": ["-1001234567890"]
+      }
+    ],
+    "metadata": {
+      "source": "LMS",
+      "course_id": "js-advanced-2024",
+      "timestamp": "2024-01-15T10:30:00Z"
+    }
+  }'
+```
+
+### Health Check
+```bash
+# Check if Postmaster is running
+curl -X GET http://localhost:3000/api/v1/health \
+  -H "Authorization: Bearer your-secret-api-key-change-in-production"
+```
+
+### Response Examples
+
+#### Successful Broadcast Response
+```json
+{
+  "success": true,
+  "jobId": "broadcast-abc123def456",
+  "message": "Broadcast job queued successfully",
+  "targets": 3,
+  "estimatedDelivery": "2024-01-15T10:31:00Z",
+  "metadata": {
+    "queuePosition": 1,
+    "retryPolicy": "exponential",
+    "maxRetries": 3
+  }
+}
+```
+
+#### Error Response
+```json
+{
+  "success": false,
+  "error": "VALIDATION_ERROR",
+  "message": "Invalid platform specified",
+  "details": {
+    "field": "targets[0].platform",
+    "value": "invalid-platform",
+    "allowedValues": ["slack", "discord", "telegram"]
+  }
+}
+```
+
+## 📋 API Reference
+
+### Request Schema
+```json
+{
+  "message": {
+    "title": "string (optional, max 200 chars)",
+    "content": "string (required, max 10000 chars)", 
+    "priority": "low|normal|high|critical (optional, default: normal)",
+    "tags": ["string"] // optional array of tags
+  },
+  "targets": [
+    {
+      "platform": "slack|discord|telegram",
+      "channels": ["string"], // channel names or IDs
+      "template": "string (optional)" // custom template name
+    }
+  ],
+  "schedule": {
+    "send_at": "ISO 8601 datetime (optional)" // for delayed sending
+  },
+  "metadata": {
+    // Any additional data you want to track
+  }
+}
+```
+
+### Authentication
+All requests require the `Authorization` header:
+```
+Authorization: Bearer your-secret-api-key-change-in-production
+```
+
+### Rate Limits
+- **Default**: 60 requests per minute per API key
+- **Burst**: Up to 10 requests per second
+- **Headers**: Check `X-RateLimit-*` headers in responses
+
 ## 🔧 Platform Setup
 
 ### 1. Slack Integration

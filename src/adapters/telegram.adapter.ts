@@ -1,7 +1,7 @@
 import { NotificationTarget } from '@prisma/client';
 import { BasePlatformAdapter } from './base.adapter';
 import { FormattedMessage } from '../services/message-formatter.service';
-import { PlatformError, ErrorType } from '../jobs/notification.worker';
+import { PlatformError, ErrorType } from '../types/errors.types';
 
 export interface TelegramMessage {
   chat_id: string | number;
@@ -135,7 +135,7 @@ export class TelegramAdapter extends BasePlatformAdapter {
         body: JSON.stringify(telegramMessage),
       });
 
-      const responseData: TelegramApiResponse = await response.json();
+      const responseData: TelegramApiResponse = await response.json() as TelegramApiResponse;
 
       if (!response.ok || !responseData.ok) {
         await this.handleRateLimit({ status: response.status, response });
@@ -335,7 +335,7 @@ export class TelegramAdapter extends BasePlatformAdapter {
   /**
    * Validate Telegram-specific message constraints
    */
-  protected validateMessage(message: FormattedMessage): void {
+  protected override validateMessage(message: FormattedMessage): void {
     super.validateMessage(message);
     
     // Telegram-specific validations
@@ -353,7 +353,7 @@ export class TelegramAdapter extends BasePlatformAdapter {
   /**
    * Get webhook URL for Telegram (not used, but required by base class)
    */
-  protected getWebhookUrl(channel: string): string {
+  protected override getWebhookUrl(channel: string): string {
     // Telegram uses Bot API, not webhooks, but we need to implement this
     return `https://api.telegram.org/bot${this.botToken}/sendMessage`;
   }
@@ -361,7 +361,7 @@ export class TelegramAdapter extends BasePlatformAdapter {
   /**
    * Get Telegram-specific adapter statistics
    */
-  getStats() {
+  override getStats() {
     const baseStats = super.getStats();
     
     return {

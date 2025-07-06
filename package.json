@@ -9,7 +9,10 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
+    "start:all": "concurrently --names \"SERVER,WORKER\" --prefix-colors \"blue,green\" \"npm run start\" \"npm run worker:prod\"",
+    "start:launcher": "node scripts/start-all.js",
     "dev": "nodemon src/server.ts",
+    "dev:all": "concurrently --names \"SERVER,WORKER\" --prefix-colors \"blue,green\" \"npm run dev\" \"npm run worker\"",
     "worker": "nodemon src/worker.ts",
     "worker:prod": "node dist/worker.js",
     "test": "jest",
@@ -56,6 +59,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.10",
     "@types/supertest": "^6.0.3",
+    "concurrently": "^9.2.0",
     "jest": "^30.0.4",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.1",

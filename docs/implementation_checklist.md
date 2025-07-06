@@ -10,7 +10,6 @@ This document provides a sequential checklist for implementing the Postmaster pr
 - [x] Add `fastify`, `prisma`, `@prisma/client`, `bullmq`, `redis`, `pino`, `pino-pretty`, `joi` as production dependencies.
 - [x] Create a `tsconfig.json` file for TypeScript configuration.
 - [x] Create a comprehensive `.gitignore` file.
-- [x] Create a `.dockerignore` file to exclude unnecessary files from the Docker build context.
 
 ### 1.2: Directory Structure
 - [x] Create the initial directory structure as defined in `plan.md`: `src`, `prisma`, `docs`, `tests`, etc.
@@ -54,7 +53,6 @@ This document provides a sequential checklist for implementing the Postmaster pr
 ### 2.5: Worker Implementation
 - [x] Create the worker entry point `src/worker.ts`.
 - [x] Implement the `NotificationWorker` in `src/jobs/notification.worker.ts` to process jobs from the queue.
-- [x] Add a new `worker` service to the `docker-compose.yml` file to run the worker process.
 
 ## Phase 3: Dispatching, Adapters & Error Handling
 

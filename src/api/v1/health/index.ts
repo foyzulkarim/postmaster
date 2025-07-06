@@ -8,7 +8,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
   // GET /api/v1/health - Comprehensive health check (no auth required)
   fastify.get('/', {
     schema: healthSchema.healthCheck,
-    handler: healthController.healthCheck.bind(healthController),
+    handler: HealthController.healthCheck,
   });
 
   // Cleanup on close

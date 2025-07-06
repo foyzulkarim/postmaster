@@ -80,7 +80,18 @@ export class HealthController {
   /**
    * Comprehensive health check
    */
-  async healthCheck(
+  static async healthCheck(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<HealthResponse> {
+    const controller = new HealthController();
+    return controller.performHealthCheck(request, reply);
+  }
+
+  /**
+   * Perform health check implementation
+   */
+  private async performHealthCheck(
     request: FastifyRequest,
     reply: FastifyReply
   ): Promise<HealthResponse> {
@@ -169,6 +180,7 @@ export class HealthController {
           queue: { healthy: false, error: 'Health check failed' },
           rateLimiter: { healthy: false, error: 'Health check failed' },
           platforms: { healthy: false, error: 'Health check failed' },
+          configuration: { healthy: false, error: 'Health check failed' },
         },
         metrics: this.getEmptyMetrics(),
       };
@@ -332,7 +344,7 @@ export class HealthController {
       if (!hasConfiguredPlatforms) {
         return {
           healthy: false,
-          responseTime: Date.now() - startTime,
+          response_time: Date.now() - startTime,
           error: 'No platforms configured',
           details: {
             configSummary: platformConfigManager.getConfigSummary(),
@@ -345,7 +357,7 @@ export class HealthController {
       
       return {
         healthy: true,
-        responseTime: Date.now() - startTime,
+        response_time: Date.now() - startTime,
         details: {
           activePlatforms,
           totalActivePlatforms: activePlatforms.length,
@@ -356,7 +368,7 @@ export class HealthController {
     } catch (error) {
       return {
         healthy: false,
-        responseTime: Date.now() - startTime,
+        response_time: Date.now() - startTime,
         error: error instanceof Error ? error.message : 'Configuration check failed',
         details: {
           configPath: platformConfigManager['configPath'],

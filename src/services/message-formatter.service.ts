@@ -31,18 +31,18 @@ export class MessageFormatterService {
   /**
    * Format message for a specific platform
    */
-  formatForPlatform(
+  async formatForPlatform(
     message: BroadcastMessage,
     platform: string,
     format?: string,
     templateName?: string
-  ): FormattedMessage {
+  ): Promise<FormattedMessage> {
     try {
       const formatter = this.getFormatter(platform);
       
       // If template is specified, try to use it
       if (templateName) {
-        return this.formatWithTemplate(message, platform, templateName);
+        return await this.formatWithTemplate(message, platform, templateName);
       }
 
       // Use regular formatting

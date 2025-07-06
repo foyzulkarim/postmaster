@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { config } from './config';
@@ -9,8 +10,7 @@ const redis = new Redis({
   host: config.redis.host,
   port: config.redis.port,
   password: config.redis.password,
-  maxRetriesPerRequest: 3,
-  retryDelayOnFailover: 100,
+  maxRetriesPerRequest: null, // Required for BullMQ
   lazyConnect: true,
 });
 
@@ -26,8 +26,8 @@ const worker = new Worker(
   {
     connection: redis,
     concurrency: 5, // Process up to 5 jobs concurrently
-    removeOnComplete: 100, // Keep last 100 completed jobs
-    removeOnFail: 50, // Keep last 50 failed jobs
+    removeOnComplete: { count: 100 }, // Keep last 100 completed jobs
+    removeOnFail: { count: 50 }, // Keep last 50 failed jobs
   }
 );
 

@@ -238,7 +238,7 @@ export class TemplateService {
   /**
    * Recursively replace variables in template data
    */
-  private replaceVariables(obj: any, variables: TemplateVariables): void {
+  private replaceVariables(obj: any, variables: TemplateVariables): any {
     if (typeof obj === 'string') {
       return this.replaceStringVariables(obj, variables);
     }

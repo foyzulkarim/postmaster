@@ -35,7 +35,7 @@ export class AuthMiddleware {
       
       const token = authHeader.substring(7); // Remove 'Bearer ' prefix
       const expectedToken = config.auth.apiKey;
-      
+      console.log('expectedToken', expectedToken);
       if (!expectedToken) {
         apiLogger.error('API key not configured in environment', {
           url: request.url,
@@ -50,7 +50,7 @@ export class AuthMiddleware {
           request_id: request.id,
         });
       }
-      
+      console.log('token', token);
       if (token !== expectedToken) {
         apiLogger.warn('Invalid API key provided', {
           ip: request.ip,
